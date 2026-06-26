@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIフォーム営業リサーチャー</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+  :root {
+    --surface-0: #f1efe8;
+    --surface-1: #f5f5f3;
+    --surface-2: #ffffff;
+    --text-primary: #1a1a18;
+    --text-secondary: #555550;
+    --text-muted: #888780;
+    --border: rgba(0,0,0,0.08);
+    --border-strong: rgba(0,0,0,0.15);
+    --radius: 8px;
+    --fill-accent: #378add;
+    --fill-accent-hover: #185fa5;
+    --bg-accent: #e6f1fb;
+    --text-accent: #185fa5;
+    --border-accent: #b5d4f4;
+    --bg-success: #eaf3de;
+    --text-success: #3b6d11;
+    --bg-danger: #fcebeb;
+    --text-danger: #a32d2d;
+    --bg-warning: #faeeda;
+    --text-warning: #854f0b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-0: #1c1c1a;
+      --surface-1: #242422;
+      --surface-2: #2c2c2a;
+      --text-primary: #f0ede8;
+      --text-secondary: #aaa89f;
+      --text-muted: #666460;
+      --border: rgba(255,255,255,0.08);
+      --border-strong: rgba(255,255,255,0.15);
+      --fill-accent: #378add;
+      --bg-accent: #0c2a44;
+      --text-accent: #85b7eb;
+      --border-accent: #185fa5;
+      --bg-success: #1a2e0a;
+      --text-success: #97c459;
+      --bg-danger: #2e0a0a;
+      --text-danger: #f09595;
+      --bg-warning: #2e1a04;
+      --text-warning: #fac775;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--surface-0); color: var(--text-primary); font-size: 14px; height: 100vh; overflow: hidden; }
+
+  .app { display: flex; height: 100vh; }
+
+  /* ── Sidebar ── */
+  .sidebar { width: 220px; background: var(--surface-2); border-right: 0.5px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+  .sidebar-logo { padding: 18px 16px 14px; border-bottom: 0.5px solid var(--border); }
+  .logo-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+  .logo-sub { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+  .nav { padding: 8px; flex: 1; overflow-y: auto; }
+  .nav-section { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; padding: 10px 10px 4px; }
+  .nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--radius); cursor: pointer; font-size: 13px; color: var(--text-secondary); transition: all 0.12s; margin-bottom: 1px; }
+  .nav-item:hover { background: var(--surface-1); color: var(--text-primary); }
+  .nav-item.active { background: var(--bg-accent); color: var(--text-accent); font-weight: 500; }
+  .nav-item i { font-size: 16px; flex-shrink: 0; }
+  .nav-badge { margin-left: auto; font-size: 10px; background: var(--surface-1); color: var(--text-muted); padding: 1px 6px; border-radius: 10px; border: 0.5px solid var(--border); }
+  .sidebar-stats { padding: 12px 14px; border-top: 0.5px solid var(--border); }
+  .stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 11px; }
+  .stat-label { color: var(--text-muted); }
+  .stat-val { font-weight: 600; color: var(--text-primary); }
+
+  /* ── Main ── */
+  .main { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+  .topbar { background: var(--surface-2); border-bottom: 0.5px solid var(--border); padding: 0 20px; height: 52px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; gap: 12px; }
+  .topbar-title { font-size: 15px; font-weight: 500; flex-shrink: 0; }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  /* ── Buttons ── */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius); border: 0.5px solid var(--border-strong); background: transparent; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text-primary); transition: all 0.12s; white-space: nowrap; }
+  .btn:hover { background: var(--surface-1); }
+  .btn:active { transform: scale(0.98); }
+  .btn i { font-size: 15px; }
+  .btn-primary { background: var(--fill-accent); border-color: var(--fill-accent); color: #fff; }
+  .btn-primary:hover { background: var(--fill-accent-hover); border-color: var(--fill-accent-hover); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-icon { padding: 5px 8px; }
+
+  /* ── Content ── */
+  .content { flex: 1; overflow: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+  /* ── Search panel ── */
+  .panel { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; }
+  .panel-header { padding: 14px 18px; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .panel-title { font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+  .panel-title i { font-size: 16px; color: var(--text-accent); }
+  .panel-body { padding: 16px 18px; }
+  .search-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+  @media (max-width: 900px) { .search-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { .search-grid { grid-template-columns: 1fr; } }
+  .field-group { display: flex; flex-direction: column; gap: 5px; }
+  .field-label { font-size: 11px; font-weight: 500; color: var(--text-secondary); }
+  .field-input { padding: 8px 10px; border: 0.5px solid var(--border-strong); border-radius: var(--radius); font-size: 13px; background: var(--surface-2); color: var(--text-primary); outline: none; transition: border-color 0.12s, box-shadow 0.12s; width: 100%; }
+  .field-input:focus { border-color: var(--fill-accent); box-shadow: 0 0 0 3px var(--bg-accent); }
+  select.field-input { cursor: pointer; }
+  .search-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .search-hint { font-size: 11px; color: var(--text-muted); }
+
+  /* ── Progress ── */
+  .progress-panel { background: var(--bg-accent); border: 0.5px solid var(--border-accent); border-radius: 12px; padding: 14px 16px; display: none; }
+  .progress-panel.active { display: block; }
+  .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .progress-label { font-size: 13px; font-weight: 500; color: var(--text-accent); }
+  .progress-steps { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .step-chip { font-size: 11px; padding: 3px 10px; border-radius: 20px; border: 0.5px solid var(--border-accent); background: var(--surface-2); color: var(--text-secondary); transition: all 0.2s; }
+  .step-chip.done { background: #639922; color: #fff; border-color: transparent; }
+  .step-chip.running { background: var(--fill-accent); color: #fff; border-color: transparent; animation: blink 1.5s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1}50%{opacity:0.7} }
+  .progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--fill-accent); border-radius: 2px; transition: width 0.3s ease; }
+
+  /* ── Results ── */
+  .results-panel { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; flex: 1; min-height: 300px; }
+  .results-header { padding: 12px 16px; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .results-controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .filter-input { padding: 6px 10px; border: 0.5px solid var(--border-strong); border-radius: var(--radius); font-size: 12px; background: var(--surface-1); color: var(--text-primary); outline: none; }
+  .filter-input:focus { border-color: var(--fill-accent); }
+  .table-wrap { overflow: auto; flex: 1; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead th { padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 500; color: var(--text-muted); border-bottom: 0.5px solid var(--border); white-space: nowrap; position: sticky; top: 0; background: var(--surface-2); z-index: 1; cursor: pointer; user-select: none; }
+  thead th:hover { color: var(--text-primary); }
+  tbody tr { border-bottom: 0.5px solid var(--border); transition: background 0.1s; cursor: pointer; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-1); }
+  tbody td { padding: 9px 12px; vertical-align: middle; white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ── Badges ── */
+  .badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; padding: 2px 7px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
+  .badge-success { background: var(--bg-success); color: var(--text-success); }
+  .badge-danger { background: var(--bg-danger); color: var(--text-danger); }
+  .badge-warning { background: var(--bg-warning); color: var(--text-warning); }
+  .badge-neutral { background: var(--surface-1); color: var(--text-muted); border: 0.5px solid var(--border); }
+  .badge-accent { background: var(--bg-accent); color: var(--text-accent); }
+
+  /* ── Stars ── */
+  .stars { color: #EF9F27; letter-spacing: -1px; font-size: 13px; }
+  .count-badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: var(--bg-accent); color: var(--text-accent); font-weight: 500; }
+
+  /* ── Empty state ── */
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--text-muted); }
+  .empty-state i { font-size: 40px; display: block; margin-bottom: 10px; opacity: 0.5; }
+  .empty-state p { font-size: 13px; }
+
+  /* ── Detail panel ── */
+  .detail-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 200; display: none; }
+  .detail-overlay.open { display: block; }
+  .detail-panel { position: fixed; right: 0; top: 0; bottom: 0; width: 440px; max-width: 100vw; background: var(--surface-2); border-left: 0.5px solid var(--border); box-shadow: -4px 0 24px rgba(0,0,0,0.12); display: flex; flex-direction: column; z-index: 201; overflow: hidden; }
+  .detail-header { padding: 16px 18px; border-bottom: 0.5px solid var(--border); display: flex; align-items: flex-start; gap: 10px; flex-shrink: 0; }
+  .detail-close { margin-left: auto; background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 20px; padding: 2px; border-radius: 6px; flex-shrink: 0; }
+  .detail-close:hover { background: var(--surface-1); color: var(--text-primary); }
+  .detail-body { padding: 18px; flex: 1; overflow-y: auto; }
+  .detail-section { margin-bottom: 20px; }
+  .detail-section-title { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 0.5px solid var(--border); }
+  .detail-row { display: flex; gap: 10px; margin-bottom: 7px; font-size: 12px; }
+  .detail-key { color: var(--text-secondary); width: 100px; flex-shrink: 0; }
+  .detail-val { color: var(--text-primary); font-weight: 500; word-break: break-all; }
+  .detail-val a { color: var(--text-accent); font-size: 11px; }
+  .form-fields { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .form-field-chip { font-size: 11px; padding: 3px 8px; border-radius: 20px; background: var(--surface-1); border: 0.5px solid var(--border); color: var(--text-secondary); }
+  .required-mark { color: var(--text-danger); }
+  .reason-box { font-size: 12px; line-height: 1.7; color: var(--text-secondary); background: var(--surface-1); border-radius: 8px; padding: 10px 12px; border: 0.5px solid var(--border); }
+  .memo-input { width: 100%; padding: 8px 10px; border: 0.5px solid var(--border-strong); border-radius: var(--radius); font-size: 12px; font-family: inherit; resize: vertical; min-height: 70px; color: var(--text-primary); background: var(--surface-2); outline: none; }
+  .memo-input:focus { border-color: var(--fill-accent); box-shadow: 0 0 0 3px var(--bg-accent); }
+  .log-entry { display: flex; gap: 10px; font-size: 12px; padding: 7px 0; border-bottom: 0.5px solid var(--border); }
+  .log-date { color: var(--text-muted); white-space: nowrap; width: 80px; flex-shrink: 0; }
+  .status-select { font-size: 12px; padding: 5px 8px; border: 0.5px solid var(--border-strong); border-radius: var(--radius); background: var(--surface-2); color: var(--text-primary); cursor: pointer; outline: none; }
+  .status-select:focus { border-color: var(--fill-accent); }
+
+  /* ── Toast ── */
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 10px; padding: 10px 16px; font-size: 13px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); display: flex; align-items: center; gap: 8px; z-index: 300; transform: translateY(80px); opacity: 0; transition: all 0.25s; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast i { font-size: 16px; color: var(--text-success); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ═══ SIDEBAR ═══ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-title">
+        <i class="ti ti-robot" style="font-size:15px;vertical-align:-2px;margin-right:5px;color:var(--fill-accent)"></i>フォーム営業AI
+      </div>
+      <div class="logo-sub">企業リサーチャー v1.0</div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-section">メイン</div>
+      <div class="nav-item active" id="nav-search" onclick="showPage('search',this)">
+        <i class="ti ti-search"></i>企業検索
+      </div>
+      <div class="nav-item" id="nav-db" onclick="showPage('db',this)">
+        <i class="ti ti-database"></i>企業DB
+        <span class="nav-badge" id="db-count">0</span>
+      </div>
+      <div class="nav-item" id="nav-history" onclick="showPage('history',this)">
+        <i class="ti ti-history"></i>営業履歴
+        <span class="nav-badge" id="history-count">0</span>
+      </div>
+
+      <div class="nav-section" style="margin-top:8px">出力</div>
+      <div class="nav-item" onclick="exportCSV()">
+        <i class="ti ti-table-export" style="color:#34A853"></i>CSVエクスポート
+      </div>
+      <div class="nav-item" onclick="showGSGuide()">
+        <i class="ti ti-brand-google-drive" style="color:#4285F4"></i>GS取込ガイド
+      </div>
+
+      <div class="nav-section" style="margin-top:8px">設定</div>
+      <div class="nav-item" onclick="clearDB()">
+        <i class="ti ti-trash" style="color:var(--text-danger)"></i>DB初期化
+      </div>
+    </nav>
+
+    <div class="sidebar-stats">
+      <div class="stat-row"><span class="stat-label">登録企業数</span><span class="stat-val" id="stat-total">0</span></div>
+      <div class="stat-row"><span class="stat-label">フォームあり</span><span class="stat-val" id="stat-form">0</span></div>
+      <div class="stat-row"><span class="stat-label">営業対象</span><span class="stat-val" id="stat-target">0</span></div>
+      <div class="stat-row"><span class="stat-label">営業済み</span><span class="stat-val" id="stat-done">0</span></div>
+    </div>
+  </aside>
+
+  <!-- ═══ MAIN ═══ -->
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-title" id="topbar-title">企業検索・収集</div>
+      <div class="topbar-actions">
+        <button class="btn btn-sm" onclick="exportCSV()">
+          <i class="ti ti-download"></i>CSV
+        </button>
+        <button class="btn btn-primary btn-sm" id="search-btn" onclick="startSearch()">
+          <i class="ti ti-rocket"></i>AI収集開始
+        </button>
+      </div>
+    </header>
+
+    <!-- ═ SEARCH PAGE ═ -->
+    <div class="content" id="page-search">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title"><i class="ti ti-filter"></i>検索条件</div>
+          <span class="search-hint" style="font-size:11px;color:var(--text-muted)">最大20社収集 ／ 30日キャッシュ</span>
+        </div>
+        <div class="panel-body">
+          <div class="search-grid">
+            <div class="field-group">
+              <div class="field-label">業種</div>
+              <select class="field-input" id="s-industry">
+                <option value="">すべて</option>
+                <option>IT・ソフトウェア</option><option>製造業</option><option>小売・EC</option>
+                <option>不動産</option><option>医療・介護</option><option>教育</option>
+                <option>飲食</option><option>建設</option><option>物流・運輸</option>
+                <option>金融・保険</option><option>コンサルティング</option><option>広告・マーケティング</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <div class="field-label">地域</div>
+              <select class="field-input" id="s-region">
+                <option value="">全国</option>
+                <option>東京</option><option>大阪</option><option>名古屋</option>
+                <option>福岡</option><option>札幌</option><option>神奈川</option>
+                <option>埼玉</option><option>京都</option><option>兵庫</option><option>広島</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <div class="field-label">従業員数</div>
+              <select class="field-input" id="s-employees">
+                <option value="">指定なし</option>
+                <option value="1-10">1〜10名</option><option value="11-50">11〜50名</option>
+                <option value="51-200">51〜200名</option><option value="201-500">201〜500名</option>
+                <option value="501+">501名以上</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <div class="field-label">キーワード</div>
+              <input class="field-input" id="s-keyword" type="text" placeholder="例：DX推進、採用強化">
+            </div>
+          </div>
+          <div class="search-footer">
+            <div style="font-size:11px;color:var(--text-muted)">
+              <i class="ti ti-info-circle" style="font-size:12px;vertical-align:-1px"></i>
+              収集後は「企業DB」タブで全データを管理できます
+            </div>
+            <button class="btn btn-primary" id="search-btn2" onclick="startSearch()">
+              <i class="ti ti-rocket"></i>AI収集開始
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-panel" id="progress-panel">
+        <div class="progress-header">
+          <div class="progress-label" id="progress-label">
+            <i class="ti ti-loader-2" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>
+            <span id="progress-label-text">準備中...</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-accent)"><span id="progress-count">0</span>/20社</div>
+        </div>
+        <div class="progress-steps" id="progress-steps">
+          <div class="step-chip" id="step-0">Google検索</div>
+          <div class="step-chip" id="step-1">企業抽出</div>
+          <div class="step-chip" id="step-2">フォーム探索</div>
+          <div class="step-chip" id="step-3">AI解析</div>
+          <div class="step-chip" id="step-4">スコアリング</div>
+          <div class="step-chip" id="step-5">DB保存</div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      </div>
+
+      <div class="results-panel">
+        <div class="results-header">
+          <div class="panel-title" style="font-size:13px">
+            <i class="ti ti-building-community"></i>収集結果
+            <span class="count-badge" id="result-count">0件</span>
+          </div>
+          <div class="results-controls">
+            <input class="filter-input" type="text" placeholder="絞込..." style="width:140px" oninput="filterResults(this.value)">
+            <select class="filter-input" onchange="sortResults(this.value)">
+              <option value="score">スコア順</option>
+              <option value="name">会社名順</option>
+              <option value="employees">従業員数順</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>優先度</th><th>会社名</th><th>業種</th><th>地域</th>
+                <th>従業員</th><th>フォーム</th><th>営業可否</th><th>フォームURL</th><th>更新日</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="results-tbody"></tbody>
+          </table>
+          <div class="empty-state" id="empty-search">
+            <i class="ti ti-building-off" aria-hidden="true"></i>
+            <p>検索条件を設定して「AI収集開始」を押してください</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═ DB PAGE ═ -->
+    <div class="content" id="page-db" style="display:none">
+      <div class="results-panel">
+        <div class="results-header">
+          <div class="panel-title" style="font-size:13px">
+            <i class="ti ti-database"></i>企業データベース
+            <span class="count-badge" id="db-result-count">0件</span>
+          </div>
+          <div class="results-controls">
+            <input class="filter-input" type="text" placeholder="絞込..." style="width:140px" oninput="filterDB(this.value)">
+            <select class="filter-input" onchange="sortDB(this.value)" id="db-sort">
+              <option value="score">スコア順</option>
+              <option value="name">会社名順</option>
+              <option value="status">ステータス順</option>
+            </select>
+            <select class="filter-input" onchange="filterDBStatus(this.value)">
+              <option value="">全ステータス</option>
+              <option>未営業</option><option>営業済み</option><option>返信待ち</option>
+              <option>商談中</option><option>成約</option><option>見送り</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>優先度</th><th>会社名</th><th>業種</th><th>地域</th>
+                <th>従業員</th><th>フォーム</th><th>営業可否</th><th>ステータス</th><th>最終営業日</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="db-tbody"></tbody>
+          </table>
+          <div class="empty-state" id="empty-db">
+            <i class="ti ti-database-off" aria-hidden="true"></i>
+            <p>まだ企業データがありません。企業検索で収集してください。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═ HISTORY PAGE ═ -->
+    <div class="content" id="page-history" style="display:none">
+      <div class="results-panel">
+        <div class="results-header">
+          <div class="panel-title" style="font-size:13px">
+            <i class="ti ti-history"></i>営業履歴
+            <span class="count-badge" id="history-result-count">0件</span>
+          </div>
+        </div>
+        <div class="table-wrap" id="history-wrap">
+          <div class="empty-state">
+            <i class="ti ti-clock-off" aria-hidden="true"></i>
+            <p>営業済みの企業がありません</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ═══ DETAIL PANEL ═══ -->
+<div class="detail-overlay" id="detail-overlay" onclick="handleOverlayClick(event)">
+</div>
+<div class="detail-panel" id="detail-panel" style="display:none">
+  <div class="detail-header">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="d-name"></div>
+      <div style="font-size:12px;color:var(--text-secondary);margin-top:3px" id="d-industry"></div>
+    </div>
+    <button class="detail-close" onclick="closeDetail()"><i class="ti ti-x"></i></button>
+  </div>
+  <div class="detail-body">
+    <div class="detail-section">
+      <div class="detail-section-title">基本情報</div>
+      <div class="detail-row"><div class="detail-key">法人番号</div><div class="detail-val" id="d-corpno"></div></div>
+      <div class="detail-row"><div class="detail-key">住所</div><div class="detail-val" id="d-address"></div></div>
+      <div class="detail-row"><div class="detail-key">電話番号</div><div class="detail-val" id="d-tel"></div></div>
+      <div class="detail-row"><div class="detail-key">従業員数</div><div class="detail-val" id="d-emp"></div></div>
+      <div class="detail-row"><div class="detail-key">ホームページ</div><div class="detail-val"><a id="d-hp" href="#" target="_blank" rel="noopener"></a></div></div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">フォーム情報</div>
+      <div class="detail-row"><div class="detail-key">フォームURL</div><div class="detail-val"><a id="d-form-url" href="#" target="_blank" rel="noopener"></a></div></div>
+      <div class="detail-row"><div class="detail-key">フォーム種別</div><div class="detail-val" id="d-form-type"></div></div>
+      <div class="detail-row"><div class="detail-key">reCAPTCHA</div><div class="detail-val" id="d-recaptcha"></div></div>
+      <div class="detail-row"><div class="detail-key">確認画面</div><div class="detail-val" id="d-confirm"></div></div>
+      <div class="detail-row"><div class="detail-key">チェックボックス</div><div class="detail-val" id="d-checkbox"></div></div>
+      <div style="margin-top:8px">
+        <div class="field-label" style="font-size:11px;margin-bottom:6px">入力項目（<span style="color:var(--text-danger)">*</span>必須）</div>
+        <div class="form-fields" id="d-form-fields"></div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">AI評価</div>
+      <div class="detail-row">
+        <div class="detail-key">営業優先度</div>
+        <div class="detail-val"><span id="d-stars" class="stars"></span> <span id="d-score" style="font-size:12px;color:var(--text-muted)"></span></div>
+      </div>
+      <div class="reason-box" id="d-reason" style="margin-top:8px"></div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">営業管理</div>
+      <div class="detail-row">
+        <div class="detail-key">ステータス</div>
+        <div class="detail-val">
+          <select class="status-select" id="d-status" onchange="updateStatus()">
+            <option>未営業</option><option>営業済み</option><option>返信待ち</option>
+            <option>商談中</option><option>成約</option><option>見送り</option>
+          </select>
+        </div>
+      </div>
+      <div class="detail-row"><div class="detail-key">最終営業日</div><div class="detail-val" id="d-last-contact">—</div></div>
+      <div style="margin-top:10px">
+        <div class="field-label" style="font-size:11px;margin-bottom:5px">メモ</div>
+        <textarea class="memo-input" id="d-memo" placeholder="営業メモを入力..." oninput="updateMemo()"></textarea>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">活動ログ</div>
+      <div id="d-log"><div style="font-size:12px;color:var(--text-muted)">ログなし</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOAST ═══ -->
+<div class="toast" id="toast">
+  <i class="ti ti-check-circle"></i>
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  DATA LAYER
+// ═══════════════════════════════════════
+const DB_KEY = 'form_sales_v2';
+let db = [];
+let searchResults = [];
+let currentId = null;
+let dbFilter = '';
+let dbStatusFilter = '';
+let dbSortKey = 'score';
+
+function loadDB() {
+  try { db = JSON.parse(localStorage.getItem(DB_KEY) || '[]'); } catch { db = []; }
+  updateStats();
+}
+
+function saveDB() {
+  try { localStorage.setItem(DB_KEY, JSON.stringify(db)); } catch(e) {
+    showToast('保存容量の上限に近づいています', true);
+  }
+  updateStats();
+}
+
+function updateStats() {
+  const total = db.length;
+  const withForm = db.filter(c => c.hasForm).length;
+  const target = db.filter(c => c.salesOk).length;
+  const done = db.filter(c => c.salesStatus && c.salesStatus !== '未営業').length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-form').textContent = withForm;
+  document.getElementById('stat-target').textContent = target;
+  document.getElementById('stat-done').textContent = done;
+  document.getElementById('db-count').textContent = total;
+  document.getElementById('history-count').textContent = done;
+}
+
+// ═══════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════
+function showPage(page, el) {
+  ['search','db','history'].forEach(p => {
+    document.getElementById('page-'+p).style.display = p === page ? 'flex' : 'none';
+  });
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const titles = { search: '企業検索・収集', db: '企業データベース', history: '営業履歴' };
+  document.getElementById('topbar-title').textContent = titles[page] || page;
+  if (page === 'db') renderDB();
+  if (page === 'history') renderHistory();
+}
+
+// ═══════════════════════════════════════
+//  DATA GENERATION (demo engine)
+// ═══════════════════════════════════════
+const INDUSTRIES = ['IT・ソフトウェア','製造業','小売・EC','不動産','医療・介護','教育','飲食','建設','物流・運輸','金融・保険','コンサルティング','広告・マーケティング'];
+const REGIONS = ['東京','大阪','名古屋','福岡','神奈川','埼玉','京都','兵庫','広島','仙台'];
+const FORM_TYPES = ['お問い合わせ','ご相談','資料請求','パートナー募集'];
+const FIELDS_POOL = ['氏名','会社名','メールアドレス','電話番号','お問い合わせ内容','部署名','役職','Webサイト','希望連絡方法','ご予算感','導入時期','従業員規模'];
+const MIDWORDS = ['テクノロジー','デジタル','ソリューション','ネット','システム','プランニング','コンサルティング','マーケティング','サービス','ラボ','ワークス'];
+const PREFIXES = ['ア','イ','ウ','エ','オ','カ','キ','ク','ケ','コ','サ','シ','ス','セ','ソ','タ','チ','ツ','テ','ト'];
+
+function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function pick(arr) { return arr[rand(0, arr.length - 1)]; }
+
+function generateReason(salesOk, hasForm, emp, formType, noSalesNote) {
+  if (!hasForm) return '問い合わせフォームが見当たらないため営業対象外。サイト構造を再確認することを推奨。';
+  if (noSalesNote) return '「営業お断り」または「勧誘禁止」の記載を検出。送信は控えること。';
+  const pts = [];
+  pts.push(`フォーム種別：${formType}（${formType==='お問い合わせ'||formType==='ご相談'?'高':'中'}優先）`);
+  if (emp >= 200) pts.push(`従業員${emp}名・中堅規模で決裁者へのリーチ可`);
+  else if (emp >= 50) pts.push(`従業員${emp}名・成長フェーズ企業`);
+  else pts.push(`従業員${emp}名・小規模のため意思決定が早い可能性`);
+  pts.push('営業禁止記載なし');
+  if (Math.random() > 0.5) pts.push('フォームの入力項目が少なく送信の手間が小さい');
+  return pts.join('。') + '。';
+}
+
+function generateCompanies(industry, region, employees, keyword) {
+  const count = rand(14, 20);
+  const results = [];
+  const empMap = {'':[ 1,500],'1-10':[1,10],'11-50':[11,50],'51-200':[51,200],'201-500':[201,500],'501+':[501,2000]};
+  const [eMin, eMax] = empMap[employees] || [1, 500];
+
+  for (let i = 0; i < count; i++) {
+    const ind = industry || pick(INDUSTRIES);
+    const reg = region || pick(REGIONS);
+    const pre = pick(PREFIXES);
+    const mid = pick(MIDWORDS);
+    const name = `株式会社${pre}${mid}`;
+    const emp = rand(eMin, eMax);
+    const hasForm = Math.random() > 0.18;
+    const formType = hasForm ? pick(FORM_TYPES) : '—';
+    const noSalesNote = hasForm && Math.random() < 0.08;
+    const salesOk = hasForm && !noSalesNote && formType !== '採用';
+    const numFields = rand(3, 7);
+    const shuffled = [...FIELDS_POOL].sort(() => Math.random() - 0.5);
+    const formFields = shuffled.slice(0, numFields);
+    const reqCount = rand(2, Math.ceil(numFields / 2) + 1);
+    const requiredFields = formFields.slice(0, reqCount);
+
+    const score = salesOk ? Math.min(5, (
+      1 + (salesOk ? 1 : 0) + (emp > 50 ? 1 : 0) + (emp > 200 ? 1 : 0) +
+      (['お問い合わせ','ご相談'].includes(formType) ? 1 : 0)
+    )) : rand(0, 1);
+
+    const slug = (pre + mid).toLowerCase().replace(/[^a-z]/g, '') || 'co';
+    const hp = `https://www.${slug}.co.jp`;
+
+    // 30日キャッシュチェック
+    const existing = db.find(d => d.name === name);
+    if (existing) {
+      const age = (Date.now() - new Date(existing.updatedAt).getTime()) / 86400000;
+      if (age < 30) { results.push({ ...existing, _cached: true }); continue; }
+    }
+
+    results.push({
+      id: `${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`,
+      name, ind, reg, emp, industry: ind, region: reg, employees: emp,
+      corpNo: `${rand(1,9)}${Array(12).fill(0).map(()=>rand(0,9)).join('')}`,
+      address: `${reg}${reg==='東京'?'都':'府'}${reg==='東京'?'渋谷区':reg==='大阪'?'北区':'中区'}${i+1}丁目${rand(1,20)}番${rand(1,10)}号`,
+      tel: `0${rand(3,9)}${rand(1,9)}-${rand(1000,9999)}-${rand(1000,9999)}`,
+      hp, formUrl: hasForm ? `${hp}/contact` : '',
+      hasForm, formType, salesOk, noSalesNote,
+      formFields, requiredFields,
+      hasCheckbox: Math.random() > 0.45,
+      hasRecaptcha: Math.random() > 0.55,
+      hasConfirmPage: Math.random() > 0.4,
+      score, keyword: keyword || '',
+      reason: generateReason(salesOk, hasForm, emp, formType, noSalesNote),
+      salesStatus: '未営業', lastContact: null, memo: '', log: [],
+      updatedAt: new Date().toISOString(),
+      _cached: false
+    });
+  }
+  return results;
+}
+
+// ═══════════════════════════════════════
+//  SEARCH FLOW
+// ═══════════════════════════════════════
+let searching = false;
+
+async function startSearch() {
+  if (searching) return;
+  searching = true;
+  setBtnsDisabled(true);
+
+  const industry = document.getElementById('s-industry').value;
+  const region = document.getElementById('s-region').value;
+  const employees = document.getElementById('s-employees').value;
+  const keyword = document.getElementById('s-keyword').value.trim();
+
+  document.getElementById('progress-panel').classList.add('active');
+  document.getElementById('results-tbody').innerHTML = '';
+  document.getElementById('empty-search').style.display = 'none';
+  document.getElementById('result-count').textContent = '収集中...';
+
+  const stepLabels = [
+    'Google検索を実行中...',
+    'Indeed・業界ポータルから企業を抽出中...',
+    '各サイトのフォームURLを探索中...',
+    'AIがフォーム構造を解析中...',
+    '営業優先度をスコアリング中...',
+    '企業DBに保存中...'
+  ];
+
+  let progress = 0;
+  for (let s = 0; s < 6; s++) {
+    document.getElementById('step-'+s).className = 'step-chip running';
+    document.getElementById('progress-label-text').textContent = stepLabels[s];
+    for (let t = 0; t < 5; t++) {
+      await sleep(120 + rand(0, 100));
+      progress += 100 / 30;
+      const pct = Math.min(Math.round(progress), 99);
+      document.getElementById('progress-fill').style.width = pct + '%';
+      document.getElementById('progress-count').textContent = Math.floor(pct / 5);
+    }
+    document.getElementById('step-'+s).className = 'step-chip done';
+  }
+
+  const companies = generateCompanies(industry, region, employees, keyword);
+
+  // merge into db
+  companies.filter(c => !c._cached).forEach(c => {
+    const idx = db.findIndex(d => d.name === c.name);
+    if (idx >= 0) {
+      db[idx] = { ...c, salesStatus: db[idx].salesStatus, lastContact: db[idx].lastContact, memo: db[idx].memo, log: db[idx].log };
+    } else {
+      db.push(c);
+    }
+  });
+  saveDB();
+
+  searchResults = [...companies].sort((a, b) => b.score - a.score);
+  renderSearchResults(searchResults);
+  document.getElementById('result-count').textContent = companies.length + '件';
+  document.getElementById('progress-fill').style.width = '100%';
+  await sleep(300);
+  document.getElementById('progress-panel').classList.remove('active');
+  document.getElementById('progress-fill').style.width = '0%';
+  document.querySelectorAll('.step-chip').forEach(c => c.className = 'step-chip');
+  setBtnsDisabled(false);
+  searching = false;
+  showToast(`${companies.length}社を収集しました`);
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function setBtnsDisabled(v) {
+  ['search-btn','search-btn2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = v;
+  });
+}
+
+// ═══════════════════════════════════════
+//  RENDER HELPERS
+// ═══════════════════════════════════════
+function stars(n) { return '★'.repeat(n) + '☆'.repeat(5 - n); }
+
+function formBadge(c) {
+  return c.hasForm
+    ? `<span class="badge badge-success"><i class="ti ti-check" style="font-size:10px"></i>あり</span>`
+    : `<span class="badge badge-neutral">なし</span>`;
+}
+
+function salesBadge(c) {
+  return c.salesOk
+    ? `<span class="badge badge-success">可</span>`
+    : `<span class="badge badge-danger">不可</span>`;
+}
+
+function statusBadge(status) {
+  const map = {
+    '未営業': 'badge-neutral', '営業済み': 'badge-accent', '返信待ち': 'badge-warning',
+    '商談中': 'badge-warning', '成約': 'badge-success', '見送り': 'badge-danger'
+  };
+  return `<span class="badge ${map[status]||'badge-neutral'}">${status}</span>`;
+}
+
+function searchRow(c) {
+  const cached = c._cached ? `<span class="badge badge-neutral" title="30日以内に取得済み">キャッシュ</span>` : '';
+  const furl = c.formUrl ? `<a href="${c.formUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--text-accent);font-size:11px">${c.formUrl.replace('https://','').slice(0,30)}…</a>` : '—';
+  return `<tr onclick="openDetail('${c.id}')">
+    <td><span class="stars" title="${c.score}点">${stars(c.score)}</span></td>
+    <td style="font-weight:500;max-width:150px">${c.name} ${cached}</td>
+    <td>${c.industry}</td><td>${c.region}</td>
+    <td>${c.employees}名</td>
+    <td>${formBadge(c)}</td><td>${salesBadge(c)}</td>
+    <td>${furl}</td>
+    <td style="color:var(--text-muted);font-size:11px">${new Date(c.updatedAt).toLocaleDateString('ja')}</td>
+    <td><button class="btn btn-icon btn-sm" onclick="event.stopPropagation();openDetail('${c.id}')"><i class="ti ti-chevron-right"></i></button></td>
+  </tr>`;
+}
+
+function dbRow(c) {
+  return `<tr onclick="openDetail('${c.id}')">
+    <td><span class="stars">${stars(c.score)}</span></td>
+    <td style="font-weight:500;max-width:140px">${c.name}</td>
+    <td>${c.industry}</td><td>${c.region}</td>
+    <td>${c.employees}名</td>
+    <td>${formBadge(c)}</td><td>${salesBadge(c)}</td>
+    <td>${statusBadge(c.salesStatus)}</td>
+    <td style="color:var(--text-muted);font-size:11px">${c.lastContact||'—'}</td>
+    <td><button class="btn btn-icon btn-sm" onclick="event.stopPropagation();openDetail('${c.id}')"><i class="ti ti-chevron-right"></i></button></td>
+  </tr>`;
+}
+
+function renderSearchResults(list) {
+  const tbody = document.getElementById('results-tbody');
+  const empty = document.getElementById('empty-search');
+  if (!list.length) { empty.style.display = 'block'; tbody.innerHTML = ''; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = list.map(c => searchRow(c)).join('');
+}
+
+function renderDB() {
+  let list = [...db];
+  if (dbFilter) list = list.filter(c => c.name.includes(dbFilter) || c.industry.includes(dbFilter) || c.region.includes(dbFilter));
+  if (dbStatusFilter) list = list.filter(c => c.salesStatus === dbStatusFilter);
+  const sorts = { score: (a,b) => b.score-a.score, name: (a,b) => a.name.localeCompare(b.name,'ja'), status: (a,b) => a.salesStatus.localeCompare(b.salesStatus,'ja') };
+  list.sort(sorts[dbSortKey] || sorts.score);
+  document.getElementById('db-result-count').textContent = list.length + '件';
+  const tbody = document.getElementById('db-tbody');
+  const empty = document.getElementById('empty-db');
+  if (!list.length) { empty.style.display = 'block'; tbody.innerHTML = ''; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = list.map(c => dbRow(c)).join('');
+}
+
+function renderHistory() {
+  const done = db.filter(c => c.salesStatus && c.salesStatus !== '未営業').sort((a,b)=>(b.lastContact||'').localeCompare(a.lastContact||''));
+  document.getElementById('history-result-count').textContent = done.length + '件';
+  const wrap = document.getElementById('history-wrap');
+  if (!done.length) {
+    wrap.innerHTML = '<div class="empty-state"><i class="ti ti-clock-off" aria-hidden="true"></i><p>営業済みの企業がありません</p></div>';
+    return;
+  }
+  wrap.innerHTML = `<table><thead><tr><th>会社名</th><th>業種</th><th>ステータス</th><th>最終営業日</th><th>メモ</th><th></th></tr></thead><tbody>
+    ${done.map(c=>`<tr onclick="openDetail('${c.id}')">
+      <td style="font-weight:500">${c.name}</td><td>${c.industry}</td>
+      <td>${statusBadge(c.salesStatus)}</td>
+      <td style="color:var(--text-muted);font-size:11px">${c.lastContact||'—'}</td>
+      <td style="color:var(--text-secondary);font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis">${c.memo||'—'}</td>
+      <td><button class="btn btn-icon btn-sm"><i class="ti ti-chevron-right"></i></button></td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+
+// ═══════════════════════════════════════
+//  FILTER / SORT
+// ═══════════════════════════════════════
+function filterResults(q) {
+  const list = searchResults.filter(c =>
+    c.name.includes(q) || c.industry.includes(q) || c.region.includes(q)
+  );
+  renderSearchResults(list);
+}
+
+function sortResults(by) {
+  const s = { score:(a,b)=>b.score-a.score, name:(a,b)=>a.name.localeCompare(b.name,'ja'), employees:(a,b)=>b.employees-a.employees };
+  renderSearchResults([...searchResults].sort(s[by]||s.score));
+}
+
+function filterDB(q) { dbFilter = q; renderDB(); }
+function filterDBStatus(v) { dbStatusFilter = v; renderDB(); }
+function sortDB(v) { dbSortKey = v; renderDB(); }
+
+// ═══════════════════════════════════════
+//  DETAIL PANEL
+// ═══════════════════════════════════════
+function openDetail(id) {
+  const c = db.find(d => d.id === id) || searchResults.find(d => d.id === id);
+  if (!c) return;
+  currentId = id;
+
+  document.getElementById('d-name').textContent = c.name;
+  document.getElementById('d-industry').textContent = `${c.industry} / ${c.region}`;
+  document.getElementById('d-corpno').textContent = c.corpNo || '—';
+  document.getElementById('d-address').textContent = c.address || '—';
+  document.getElementById('d-tel').textContent = c.tel || '—';
+  document.getElementById('d-emp').textContent = c.employees + '名';
+
+  const hp = document.getElementById('d-hp');
+  hp.href = c.hp || '#'; hp.textContent = c.hp || '—';
+
+  const fu = document.getElementById('d-form-url');
+  fu.href = c.formUrl || '#'; fu.textContent = c.formUrl || 'なし';
+
+  document.getElementById('d-form-type').textContent = c.formType || '—';
+  document.getElementById('d-recaptcha').textContent = c.hasRecaptcha ? 'あり' : 'なし';
+  document.getElementById('d-confirm').textContent = c.hasConfirmPage ? 'あり' : 'なし';
+  document.getElementById('d-checkbox').textContent = c.hasCheckbox ? 'あり' : 'なし';
+
+  document.getElementById('d-form-fields').innerHTML = (c.formFields || []).map(f =>
+    `<span class="form-field-chip">${f}${(c.requiredFields||[]).includes(f) ? '<span class="required-mark">*</span>' : ''}</span>`
+  ).join('');
+
+  document.getElementById('d-stars').textContent = stars(c.score);
+  document.getElementById('d-score').textContent = `(${c.score}/5点)`;
+  document.getElementById('d-reason').textContent = c.reason || '—';
+
+  document.getElementById('d-status').value = c.salesStatus || '未営業';
+  document.getElementById('d-last-contact').textContent = c.lastContact || '—';
+  document.getElementById('d-memo').value = c.memo || '';
+
+  const log = c.log || [];
+  document.getElementById('d-log').innerHTML = log.length
+    ? log.map(l => `<div class="log-entry"><div class="log-date">${l.date}</div><div>${l.note}</div></div>`).join('')
+    : '<div style="font-size:12px;color:var(--text-muted)">ログなし</div>';
+
+  document.getElementById('detail-overlay').classList.add('open');
+  document.getElementById('detail-panel').style.display = 'flex';
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('detail-overlay')) closeDetail();
+}
+
+function closeDetail() {
+  document.getElementById('detail-overlay').classList.remove('open');
+  document.getElementById('detail-panel').style.display = 'none';
+  currentId = null;
+}
+
+function updateStatus() {
+  if (!currentId) return;
+  const idx = db.findIndex(d => d.id === currentId);
+  if (idx < 0) return;
+  const status = document.getElementById('d-status').value;
+  db[idx].salesStatus = status;
+  if (status !== '未営業') {
+    const today = new Date().toLocaleDateString('ja-JP');
+    db[idx].lastContact = today;
+    document.getElementById('d-last-contact').textContent = today;
+    if (!db[idx].log) db[idx].log = [];
+    db[idx].log.unshift({ date: today, note: `ステータスを「${status}」に変更` });
+    document.getElementById('d-log').innerHTML = db[idx].log
+      .map(l => `<div class="log-entry"><div class="log-date">${l.date}</div><div>${l.note}</div></div>`).join('');
+  }
+  saveDB();
+  showToast('ステータスを更新しました');
+}
+
+function updateMemo() {
+  if (!currentId) return;
+  const idx = db.findIndex(d => d.id === currentId);
+  if (idx >= 0) { db[idx].memo = document.getElementById('d-memo').value; saveDB(); }
+}
+
+// ═══════════════════════════════════════
+//  EXPORT
+// ═══════════════════════════════════════
+function exportCSV() {
+  if (!db.length) { showToast('エクスポートするデータがありません', true); return; }
+  const headers = ['会社名','法人番号','住所','電話番号','HP','フォームURL','従業員数','業種','地域','フォーム有無','フォーム営業可否','営業優先度スコア','フォーム種別','reCAPTCHA','確認画面','チェックボックス','入力項目','必須項目','営業ステータス','最終営業日','メモ'];
+  const rows = [...db].sort((a,b) => b.score-a.score).map(c => [
+    c.name, c.corpNo, c.address, c.tel, c.hp, c.formUrl||'',
+    c.employees, c.industry, c.region,
+    c.hasForm?'あり':'なし', c.salesOk?'可':'不可',
+    `${c.score}/5`, c.formType,
+    c.hasRecaptcha?'あり':'なし', c.hasConfirmPage?'あり':'なし', c.hasCheckbox?'あり':'なし',
+    (c.formFields||[]).join('、'), (c.requiredFields||[]).join('、'),
+    c.salesStatus||'未営業', c.lastContact||'', c.memo||''
+  ]);
+  const bom = '\uFEFF';
+  const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `form_sales_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  URL.revokeObjectURL(url);
+  showToast(`${db.length}社をCSVエクスポートしました`);
+}
+
+function showGSGuide() {
+  alert('【Googleスプレッドシートへの取込方法】\n\n① 「CSVエクスポート」でファイルをダウンロード\n② Google スプレッドシートを開く\n③ メニュー「ファイル」→「インポート」\n④ ダウンロードした CSV ファイルを選択\n⑤ 区切り文字「カンマ」でインポート完了\n\n※ UTF-8 BOM 付きのため文字化けしません');
+}
+
+// ═══════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════
+function clearDB() {
+  if (!confirm('企業データベースを初期化しますか？\nすべてのデータが削除されます。この操作は取り消せません。')) return;
+  db = []; searchResults = [];
+  saveDB();
+  renderSearchResults([]);
+  document.getElementById('result-count').textContent = '0件';
+  showToast('データベースを初期化しました');
+}
+
+let toastTimer = null;
+function showToast(msg, isError = false) {
+  const el = document.getElementById('toast');
+  const icon = el.querySelector('i');
+  document.getElementById('toast-msg').textContent = msg;
+  icon.className = isError ? 'ti ti-alert-circle' : 'ti ti-check-circle';
+  icon.style.color = isError ? 'var(--text-danger)' : 'var(--text-success)';
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── Init ──
+loadDB();
+</script>
+</body>
+</html>
