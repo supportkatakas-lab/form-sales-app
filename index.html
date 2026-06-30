@@ -625,6 +625,12 @@ function generateCompanies(industry, region, employees, keyword) {
 }
 
 // ═══════════════════════════════════════
+//  バックエンドAPIのURL設定
+//  ★ Render.comにデプロイ後、このURLを書き換えてください
+// ═══════════════════════════════════════
+const API_BASE = window.API_BASE || 'https://form-sales-api.onrender.com';
+
+// ═══════════════════════════════════════
 //  SEARCH FLOW
 // ═══════════════════════════════════════
 let searching = false;
@@ -635,14 +641,19 @@ async function startSearch() {
   setBtnsDisabled(true);
 
   const industry = document.getElementById('s-industry').value;
-  const region = document.getElementById('s-region').value;
+  const region   = document.getElementById('s-region').value;
   const employees = document.getElementById('s-employees').value;
-  const keyword = document.getElementById('s-keyword').value.trim();
+  const keyword  = document.getElementById('s-keyword').value.trim();
 
   document.getElementById('progress-panel').classList.add('active');
   document.getElementById('results-tbody').innerHTML = '';
   document.getElementById('empty-search').style.display = 'none';
   document.getElementById('result-count').textContent = '収集中...';
+
+  // ステップ表示をリセット
+  for (let s = 0; s < 6; s++) {
+    document.getElementById('step-'+s).className = 'step-chip';
+  }
 
   const stepLabels = [
     'Google検索を実行中...',
@@ -653,44 +664,113 @@ async function startSearch() {
     '企業DBに保存中...'
   ];
 
-  let progress = 0;
-  for (let s = 0; s < 6; s++) {
-    document.getElementById('step-'+s).className = 'step-chip running';
-    document.getElementById('progress-label-text').textContent = stepLabels[s];
-    for (let t = 0; t < 5; t++) {
-      await sleep(120 + rand(0, 100));
-      progress += 100 / 30;
-      const pct = Math.min(Math.round(progress), 99);
-      document.getElementById('progress-fill').style.width = pct + '%';
-      document.getElementById('progress-count').textContent = Math.floor(pct / 5);
+  // プログレスバーをアニメーション（バックエンドが処理している間）
+  let stepIndex = 0;
+  const stepInterval = setInterval(() => {
+    if (stepIndex > 0) document.getElementById('step-'+(stepIndex-1)).className = 'step-chip done';
+    if (stepIndex < 6) {
+      document.getElementById('step-'+stepIndex).className = 'step-chip running';
+      document.getElementById('progress-label-text').textContent = stepLabels[stepIndex];
+      document.getElementById('progress-fill').style.width = Math.round((stepIndex + 1) / 6 * 85) + '%';
     }
-    document.getElementById('step-'+s).className = 'step-chip done';
+    stepIndex++;
+  }, 4000); // 4秒ごとにステップを進める
+
+  try {
+    // ★ バックエンドAPIを呼び出す（ここが本物のデータ取得）
+    const response = await fetch(`${API_BASE}/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ industry, region, employees, keyword }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`サーバーエラー: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const companies = normalizeCompanies(data.companies || []);
+
+    clearInterval(stepInterval);
+    for (let s = 0; s < 6; s++) {
+      document.getElementById('step-'+s).className = 'step-chip done';
+    }
+
+    // DBに保存＆画面表示
+    companies.forEach(c => {
+      const idx = db.findIndex(d => d.id === c.id || d.name === c.name);
+      if (idx >= 0) {
+        db[idx] = { ...c, salesStatus: db[idx].salesStatus, lastContact: db[idx].lastContact, memo: db[idx].memo, log: db[idx].log };
+      } else {
+        db.push(c);
+      }
+    });
+    saveDB();
+
+    searchResults = [...companies].sort((a, b) => b.score - a.score);
+    renderSearchResults(searchResults);
+    document.getElementById('result-count').textContent = companies.length + '件';
+    showToast(`${companies.length}社を収集しました`);
+
+  } catch (err) {
+    clearInterval(stepInterval);
+    console.error(err);
+    // バックエンドに接続できない場合はデモモードで動作
+    showToast('⚠ バックエンド未接続のためデモモードで動作中', true);
+    const companies = generateCompanies(industry, region, employees, keyword);
+    companies.forEach(c => {
+      const idx = db.findIndex(d => d.name === c.name);
+      if (idx >= 0) {
+        db[idx] = { ...c, salesStatus: db[idx].salesStatus, lastContact: db[idx].lastContact, memo: db[idx].memo, log: db[idx].log };
+      } else {
+        db.push(c);
+      }
+    });
+    saveDB();
+    searchResults = [...companies].sort((a, b) => b.score - a.score);
+    renderSearchResults(searchResults);
+    document.getElementById('result-count').textContent = companies.length + '件（デモ）';
   }
 
-  const companies = generateCompanies(industry, region, employees, keyword);
-
-  // merge into db
-  companies.filter(c => !c._cached).forEach(c => {
-    const idx = db.findIndex(d => d.name === c.name);
-    if (idx >= 0) {
-      db[idx] = { ...c, salesStatus: db[idx].salesStatus, lastContact: db[idx].lastContact, memo: db[idx].memo, log: db[idx].log };
-    } else {
-      db.push(c);
-    }
-  });
-  saveDB();
-
-  searchResults = [...companies].sort((a, b) => b.score - a.score);
-  renderSearchResults(searchResults);
-  document.getElementById('result-count').textContent = companies.length + '件';
   document.getElementById('progress-fill').style.width = '100%';
-  await sleep(300);
+  await sleep(400);
   document.getElementById('progress-panel').classList.remove('active');
   document.getElementById('progress-fill').style.width = '0%';
   document.querySelectorAll('.step-chip').forEach(c => c.className = 'step-chip');
   setBtnsDisabled(false);
   searching = false;
-  showToast(`${companies.length}社を収集しました`);
+}
+
+// バックエンドのレスポンスをフロントエンドの形式に変換
+function normalizeCompanies(raw) {
+  return raw.map(c => ({
+    id:           c.id || c.name,
+    name:         c.name || '',
+    corpNo:       c.corp_no || '',
+    address:      c.address || '',
+    tel:          c.tel || '',
+    hp:           c.hp || '',
+    formUrl:      c.form_url || '',
+    employees:    c.employees || 0,
+    industry:     c.industry || '',
+    region:       c.region || '',
+    hasForm:      c.has_form || false,
+    formType:     c.form_type || '—',
+    salesOk:      c.sales_ok || false,
+    score:        c.score || 0,
+    reason:       c.reason || '',
+    formFields:   c.form_fields || [],
+    requiredFields: c.required_fields || [],
+    hasRecaptcha: c.has_recaptcha || false,
+    hasConfirmPage: c.has_confirm_page || false,
+    hasCheckbox:  c.has_checkbox || false,
+    salesStatus:  c.sales_status || '未営業',
+    lastContact:  c.last_contact || null,
+    memo:         c.memo || '',
+    log:          c.log || [],
+    updatedAt:    c.updated_at || new Date().toISOString(),
+    _cached:      c._cached || false,
+  }));
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
